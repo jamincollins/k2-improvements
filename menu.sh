@@ -130,7 +130,7 @@ install_option_2() {
     # Split first three components
     major_minor_patch=$(echo "$version" | cut -d'.' -f1-3)
 
-    if [ "$major_minor_patch" \>= "1.1.2" ]; then
+    if expr "$major_minor_patch" \>= "1.1.2" >/dev/null 2>&1; then
         printf "Not installing ${entry_name}, no longer needed ...\n"
     else
         printf "Installing ${entry_name}...\n"
