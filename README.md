@@ -74,6 +74,7 @@ Sadly, many of the K2 beds resemble a taco or valley.  In the [bed_leveling](bed
 * Fluidd - https://github.com/fluidd-core/fluidd
 * Entware - https://github.com/Entware/Entware
 * Obico - https://www.obico.io/
+* OctoEverywhere - https://www.octoeverywhere.com
 
 ## Fluidd / K2 Webcam
 
