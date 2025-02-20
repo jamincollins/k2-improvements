@@ -133,6 +133,22 @@ install_option_3() {
     cd $cur_dir
 }
 
+install_option_4() {
+    entry_name="OctoEverywhere"
+    require 1
+    require 2
+    printf "Installing ${entry_name}...\n"
+    ensure_entware_in_path
+    cur_dir=$(pwd)
+    cd /mnt/UDISK
+    git clone https://github.com/QuinnDamerell/OctoPrint-OctoEverywhere.git octoeverywhere
+    cd octoeverywhere
+    ./install.sh
+    printf "${entry_name} installed.\n"
+    /etc/init.d/octoeverywhere_service restart
+    cd $cur_dir
+}
+
 # Display menu
 show_menu() {
     clear_screen
@@ -165,6 +181,14 @@ show_menu() {
         printf "3) ${entry_name}\n"
     fi
 
+    # Option 4
+    entry_name="OctoEverywhere"
+    if is_installed "4"; then
+        printf "4) %b[INSTALLED]%b ${entry_name}\n" "$GREEN" "$NC"
+    else
+        printf "4) ${entry_name}\n"
+    fi
+
     printf "%b============================================%b\n" "$BLUE" "$NC"
     printf "a) Install all\n"
     printf "%b============================================%b\n" "$BLUE" "$NC"
@@ -180,7 +204,7 @@ show_menu() {
 # Main menu loop
 while true; do
     show_menu
-    printf "Please enter your choice %b[1-3, a or q]%b: " "$YELLOW" "$NC"
+    printf "Please enter your choice %b[1-4, a or q]%b: " "$YELLOW" "$NC"
     read choice
 
     case "$choice" in
@@ -190,7 +214,7 @@ while true; do
             read dummy
             continue
             ;;
-        1|3)
+        1|4)
             if is_installed "$choice"; then
                 printf "%bThis option is already installed.%b\n" "$YELLOW" "$NC"
                 printf "Press Enter to continue..."
@@ -207,7 +231,7 @@ while true; do
             ;;
         a|A)
             clear_screen
-            for i in $(seq 1 3); do
+            for i in $(seq 1 4); do
                 "install_option_$i"
                 mark_installed "$i"
             done
