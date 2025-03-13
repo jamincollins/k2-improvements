@@ -1,0 +1,253 @@
+#!/bin/ash /etc/rc.common
+
+START=55
+USE_PROCD=1
+DEPEND=fstab,mcu_update
+
+USER_DATA=/mnt/UDISK/
+PRINTER_DATA_DIR=$USER_DATA/printer_data
+PRINTER_CONFIG_DIR=$PRINTER_DATA_DIR/config
+PRINTER_LOGS_DIR=$PRINTER_DATA_DIR/logs
+
+PROG=/usr/share/klippy-env/bin/python
+PY_SCRIPT=/usr/share/klipper/klippy/klippy.py
+CONF=$PRINTER_CONFIG_DIR/printer.cfg
+LOG=$PRINTER_LOGS_DIR/klippy.log
+
+GCODE_FILES_DIR=$PRINTER_DATA_DIR/gcodes
+ROM_CONFIG_DIR=/usr/share/klipper/config
+ROM_GCODE_DIR=/usr/share/klipper/gcodes
+PID_FILE=/var/run/klippy.pid
+
+mcu_reset()
+{
+#    [ -z $(pidof klipper_mcu) ] || /etc/init.d/klipper_mcu restart
+    /etc/init.d/klipper_mcu stop
+    /etc/init.d/klipper_mcu start
+}
+
+get_cfg_version()
+{
+    local cfg="$1"
+    local version=$(head "$cfg" | grep -w Version | awk '{print $3}')
+    local tmp=""
+
+    if [ "x$version" != "x" ]; then
+        # remove char '.'
+        tmp=${version//./}
+        # remove char 'v' or 'V'
+        tmp=${tmp//v/}
+        version=${tmp//V/}
+        echo "$version"
+    else
+        echo "000"
+    fi
+}
+
+# Max backup cfg file count: 5
+# file name like : printer.cfg.1, printer.cfg.2
+backup_usr_cfg()
+{
+    local usr_cfg=$1
+
+    if [ -f $usr_cfg ]; then
+        count=$(ls $usr_cfg* | wc -l)
+        i=$count
+        while [ $i -ge 1 ]; do
+            if [ $i -ge 6 ]; then
+                echo "do nothing"
+            elif [ $i -eq 1 ]; then
+                cp $usr_cfg $usr_cfg.1 && sync
+            else
+                cp $usr_cfg.$((i-1)) $usr_cfg.$i && sync
+            fi
+            let i-=1
+        done
+    fi
+}
+
+update_config()
+{
+    local old_cfg="$2"
+    local new_cfg="$1"
+    local tmp_cfg=$PRINTER_CONFIG_DIR/.printer.cfg
+
+    local old_version=$(get_cfg_version "$old_cfg")
+    local new_version=$(get_cfg_version "$new_cfg")
+    echo "old_version: $old_version"
+    echo "new_version: $new_version"
+
+    if [ $new_version -ne $old_version ]; then
+        echo "backup user config"
+        backup_usr_cfg "$old_cfg"
+        echo "update config"
+        cp "$new_cfg" "$tmp_cfg"
+        echo "" >> "$tmp_cfg"
+        cat "$old_cfg" | sed -n '/SAVE_CONFIG/,$p' >> "$tmp_cfg"
+        cp "$tmp_cfg" "$old_cfg" && sync
+        rm $tmp_cfg
+    fi
+}
+
+copy_config()
+{
+    local model=$(get_sn_mac.sh model)
+    local board=$(get_sn_mac.sh board)
+    local pcba_test=$(get_sn_mac.sh pcba_test)
+    local structure_version=$(get_sn_mac.sh structure_version)
+
+    case $model in
+        "CR-K1 Max")
+            if [ "$board" = "CR0CN240110C10" -o "$board" = "CR0CN240319C13" ]; then
+                config_dir=K1_MAX_CR0CN240110C10
+            else
+                config_dir=
+            fi
+
+            gcode_dir=K1_Max
+            ;;
+
+        "F008")
+            if [ "$board" = "CR0CN240110C10" -a "x$structure_version" = "x0" ]; then
+                config_dir=F008_CR0CN240319C13
+            elif [ "$board" = "CR0CN240319C13" -a "x$structure_version" = "x0" ]; then
+                config_dir=F008_CR0CN240319C13
+            elif [ "$board" = "CR0CN240319C13" -a "x$structure_version" = "x1" ]; then
+                config_dir=F008_CR0CN240319C13_1
+            elif [ "$board" = "CR0CN240319C14" -a "x$structure_version" = "x0" ]; then
+                config_dir=F008_CR0CN240319C13
+            else
+                config_dir=
+            fi
+
+            gcode_dir=F008
+            ;;
+
+        "F012")
+            if [ "$board" = "CR0CN240319C13" ]; then
+                config_dir=F012_CR0CN240319C13
+            else
+                config_dir=
+            fi
+
+            gcode_dir=F012
+            ;;
+
+        "F021")
+            if [ "$board" = "CR0CN240319C13" ]; then
+                config_dir=F021_CR0CN240319C13
+            else
+                config_dir=
+            fi
+
+            gcode_dir=F021
+            ;;
+
+        *)
+            config_dir=
+            gcode_dir=
+            ;;
+
+    esac
+
+    [ "x${config_dir}" = "x" ] && {
+        echo "config_dir is invalid!"
+        exit 0
+    }
+
+    CONFIG_PATH=$ROM_CONFIG_DIR/${config_dir}
+
+    [ -d "${CONFIG_PATH}" ] || {
+        echo "config_dir is not exist!"
+        exit 0
+    }
+
+    if [ -s $PRINTER_CONFIG_DIR/printer.cfg ]; then
+        if [ -s $PRINTER_CONFIG_DIR/printer_params.cfg ]; then
+            echo "no need to update custom config files"
+
+            [ -f $PRINTER_CONFIG_DIR/sensorless.cfg ] || {
+                echo "no sensorless.cfg, so copy"
+                cp -af ${CONFIG_PATH}/sensorless.cfg $PRINTER_CONFIG_DIR/
+                sync
+            }
+
+            [ -f $PRINTER_CONFIG_DIR/gcode_macro.cfg ] || {
+                echo "no gcode_macro.cfg, so copy"
+                cp -af ${CONFIG_PATH}/gcode_macro.cfg $PRINTER_CONFIG_DIR/
+                sync
+            }
+
+            [ -f $PRINTER_CONFIG_DIR/box.cfg ] || {
+                [ -f ${CONFIG_PATH}/box.cfg ] && {
+                    echo "no box.cfg, so copy"
+                    cp -af ${CONFIG_PATH}/box.cfg $PRINTER_CONFIG_DIR/
+                    sync
+                }
+            }
+        else
+            # keep printer.cfg
+            ls "${CONFIG_PATH}"/*.cfg | grep -v printer.cfg | xargs -I {} cp -af {} $PRINTER_CONFIG_DIR/
+            sync
+        fi
+
+        # update printer.cfg and keep SAVE_CONFIG section
+        update_config "$CONFIG_PATH/printer.cfg" $PRINTER_CONFIG_DIR/printer.cfg
+    else
+        cp -af "${CONFIG_PATH}"/*.cfg $PRINTER_CONFIG_DIR/
+        sync
+    fi
+
+    [ "x${gcode_dir}" = "x" ] && {
+        echo "gcode_dir is invalid!"
+        exit 0
+    }
+
+    GCODE_PATH=$ROM_GCODE_DIR/${gcode_dir}
+
+    [ -d "${GCODE_PATH}" ] || {
+        echo "gcode_dir is not exist!"
+        exit 0
+    }
+
+    # delete old gcodes
+    if [ "x$model" = "xF008" ]; then
+        rm -f ${GCODE_FILES_DIR}/3DBench_PLA_25m.gcode
+        rm -f ${GCODE_FILES_DIR}/3DBench_PLA_14m.gcode
+        rm -f ${GCODE_FILES_DIR}/3DBenchy_PLA_34m9s.gcode
+        rm -f ${GCODE_FILES_DIR}/Crealitylogo_PLA_35m.gcode
+    fi
+
+    rsync -a $GCODE_PATH/* ${GCODE_FILES_DIR}/
+    sync
+
+    # overlay printer.cfg for pcba test
+    if [ "x$pcba_test" = "x1" ]; then
+        cp -af $PRINTER_CONFIG_DIR/factory_printer.cfg $PRINTER_CONFIG_DIR/printer.cfg && sync
+        mkdir -p /tmp/creality && touch /tmp/creality/factory_test
+    fi
+}
+
+start_service() {
+
+    [ -e /tmp/.stress_test ] && exit 0
+    [ "x$(get_sn_mac.sh pcba_test)" = "x1" ] && {
+        mkdir -p /tmp/creality && touch /tmp/creality/factory_test
+        exit 0
+    }
+
+    mcu_reset
+
+    [ -d $PRINTER_DATA_DIR ] || mkdir -p $PRINTER_DATA_DIR
+    [ -d $PRINTER_CONFIG_DIR ] || mkdir -p $PRINTER_CONFIG_DIR
+    [ -d $PRINTER_LOGS_DIR ] || mkdir -p $PRINTER_LOGS_DIR
+    [ -d $GCODE_FILES_DIR ] || mkdir -p $GCODE_FILES_DIR
+
+    copy_config
+    procd_open_instance
+    procd_set_param pidfile $PID_FILE
+    procd_set_param env HOME=/mnt/UDISK
+    # taskset klipper process to CPU1
+    procd_set_param command taskset 0x2 $PROG $PY_SCRIPT $CONF -l $LOG -a /tmp/klippy_uds
+    procd_close_instance
+}

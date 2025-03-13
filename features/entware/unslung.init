@@ -1,0 +1,13 @@
+#!/bin/ash
+
+ACTION=${1}
+
+if [ "${ACTION}" == "boot" ]; then
+    ACTION=start
+fi
+
+while ! grep -q "/mnt/UDISK" /proc/mounts; do
+    sleep 1
+done
+
+sh /opt/etc/init.d/rc.unslung "${ACTION}"

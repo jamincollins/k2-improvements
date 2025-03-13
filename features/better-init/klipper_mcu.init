@@ -1,0 +1,16 @@
+#!/bin/ash /etc/rc.common
+
+START=54
+USE_PROCD=1
+DEPEND=fstab,mcu_update
+
+start_service() {
+	[ -e /tmp/.stress_test ] && exit 0
+	[ "x$(get_sn_mac.sh pcba_test)" = "x1" ] && exit 0
+
+	procd_open_instance
+    procd_set_param pidfile /var/run/klipper_mcu.pid
+	procd_set_param env HOME=/root
+	procd_set_param command klipper_mcu -r
+	procd_close_instance
+}

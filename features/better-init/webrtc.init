@@ -1,0 +1,86 @@
+#!/bin/ash /etc/rc.common
+
+START=97
+STOP=97
+USE_PROCD=1
+DEPEND=fstab
+PROG=/usr/bin/webrtc
+USER_DATA=/mnt/UDISK
+INVALID_DEVICE_NUM=00000000000000
+# 0: dev; 1: normal
+ENV_NUM=0
+CONFIG_FILE=$USER_DATA/creality/userdata/config/system_config.json
+
+echo_console()
+{
+    printf "$*" > /dev/console
+}
+
+get_env_num() {
+    if [ -e $CONFIG_FILE ]; then
+        val=$(jq .user_info.deploy_setting $CONFIG_FILE)
+        if [ "x$val" != "xnull" ]; then
+            case $val in
+                "0")
+                    env_num=0
+                ;;
+                "1")
+                    env_num=1
+                ;;
+                "2")
+                    env_num=2
+                ;;
+                "3")
+                    env_num=3
+                ;;
+                "4")
+                    env_num=4
+                ;;
+                "5")
+                    env_num=0
+                ;;
+                "6")
+                    env_num=5
+                ;;
+                *)
+                    env_num=0
+                ;;
+            esac
+        else
+            env_num=0
+        fi
+    else
+        env_num=0
+    fi
+
+    echo $env_num
+}
+
+prepare_params() {
+
+    if [ "x$SERVER_NUM" != "x" ]; then
+        ENV_NUM=$SERVER_NUM
+    else
+        ENV_NUM=$(get_env_num)
+    fi
+
+    DEVICE_NUM=$(/usr/bin/get_sn_mac.sh sn)
+    if [ "x$DEVICE_NUM" = "x" -o "x$DEVICE_NUM" = "x$INVALID_DEVICE_NUM" ]; then
+        echo_console "Invalid DEVICE_NUM: $DEVICE_NUM !\n"
+        exit 1
+    else
+        printf "Valid DEVICE_NUM: $DEVICE_NUM \n"
+    fi
+}
+
+echo_console "SERVER_NUM: $SERVER_NUM \n"
+
+start_service() {
+    prepare_params
+
+    procd_open_instance
+    procd_set_param pidfile /var/run/webrtc.pid
+    procd_set_param command $PROG
+    procd_append_param command $DEVICE_NUM $ENV_NUM
+    procd_close_instance
+}

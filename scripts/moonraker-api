@@ -1,0 +1,14 @@
+#!/bin/ash
+
+set -e
+
+HOST=localhost:7125
+METHOD=${1}
+URL=${2}
+
+if [ -z "${URL}" ]; then
+    echo ${0} METHOD URL
+    exit 1
+fi
+
+curl -X ${METHOD} http://${HOST}${URL} | jq .

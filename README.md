@@ -1,98 +1,89 @@
-# Bootstrap
+# K2 Improvements
 
-Given the difficulty of getting several files on to a stock K2 I'm suggesting user place this archive a USB thumb drive and plug it into the side of the K2.
-It'll automatically mount at `/mnt/exUDISK`.
+## DISCLAIMER
 
-You should be able to then run either installer:
-* `/mnt/exUDISK/k2-improvements/menu.sh`
-* `/mnt/exUDISK/k2-improvements/entware/menu.sh`
+Use at your own risk, I'm not responsible for fires or broken dreams.  But you do get to keep both halves if something breaks.
 
+## Warning
 
-DISCLAIMER: use at your own risk, not responsible for fires or broken dreams.  But you do get to keep both halves if something breaks.
+As a _heads up_ these improvements are not compatible with Creality's _auto-calibration_.  In our experience we get better results through manual tuning.
 
-# Features
-* restores and implements SCREWS_TILT_CALCULATE
-* improved Bed Mesh, removes 9x9 limitation
-* native Fluidd webcam feed/stream
-* an M191 implementation
-* improved START_PRINT macro
+## Start Here at Bootstrap
 
-## START_PRINT
+The Bootstrap is a requirement for the improvements to install properly, so this must be accomplished first. Of note, it will install entware tools necessary to accomplish the installs. Additionally, root is enabled by default with the password: 'creality_2024'. At some point, we recommend running command 'passwd' in the terminal to change the defualt password to something secure. 
 
-The improved START_PRINT macro adds:
-* support for the M191 macro through an optional **CHAMBER_TEMP** parameter
-* Z_TILT_ADJUST
-* final M190 call to ensure the bed is at desired temperature
+1. Enable root access on the K2 Plus by going to Settings, General tab and root on the physical screen. Take note of the password.
+2. Download bootstrap [https://github.com/jamincollins/k2-improvements/releases/tag/bootstrap](https://github.com/jamincollins/k2-improvements/releases/tag/bootstrap) and extract the folder.
+3. To install the bootstrap, connect to your K2 Plus's Fluid interface via browser **http://PrinterIP:4408**
+4. Unzip the downloaded bootstrap folder and upload the extracted bootstrap folder by going to Configuration **{...}**, **+**, **Upload Folder**, and selecting the extracted bootstrap folder.
+    ![image](https://github.com/user-attachments/assets/3d242efc-4cf8-412d-b4b0-59507720f5ad)
+5. SSH to the K2 Plus using any terminal tool (e.g. PuTTy) using the printers ip adress, port 22, user "root" and the password noted in step 1.
+6. Recommend performing a wipe prior to install due to potential conflicts with previous mods enter the command 'echo "all" | /usr/bin/nc -U /var/run/wipe.sock' into your terminal.
+7. If you execute a wipe, you will need to go through setup on the K2 screen and complete all the way through creality cloud connection. This will give you the wifi/network connection that you will need and connect appropriately to creality cloud. Stop at the calibration, you can do this later.
+8. To start the boostrap install paste into the terminal `sh /mnt/UDISK/printer_data/config/bootstrap/bootstrap.sh` and hit enter.
+9. Once the setup completes, it will log you out of your terminal and you will need to log back in.
 
-To leveraget the M191, you can pass the desired chamber temperature to `START_PRINT` by replacing this line in your slicer's **Start G-code** macro:
-```
-START_PRINT EXTRUDER_TEMP=[nozzle_temperature_initial_layer] BED_TEMP=[bed_temperature_initial_layer_single]
-```
-with this one:
-```
-START_PRINT EXTRUDER_TEMP=[nozzle_temperature_initial_layer] BED_TEMP=[bed_temperature_initial_layer_single] CHAMBER_TEMP=[overall_chamber_temperature]
-```
+## Installers
 
-## M191
+A unified installation menu is _planned_.  For now each feature can be found under the [features](./features/) directory.  A `README.md` and installation script `install.sh` are provided for each option.
 
-This macro can be used in a couple different ways.
+The unified installer will understand inter option dependencies and ensure they are met.
 
-Some slicers (perhaps most) have a setting to generate M141 and M191 temperature control commands.  For Creality Print and Orca Slicer this setting is among the filament setttings near the **Chamber temperature** setting.
+For now, there are two default installations:   **Note either option will take some time and seem to hang at times. Be patient as it is moving lots of files and creating venvs for klipper and moonraker full installs
 
-## Fluidd / K2 Webcam
+* Option 1: `gimme-the-jamin.sh` - Used to install carto **NOTE MUST HAVE CARTO FLASHED AND PLUGGED IN AND READY TO GO by following instructions [here](https://github.com/jamincollins/k2-improvements/blob/main/features/cartographer/firmware/README.md)
 
-Open Settings -> Cameras -> ADD CAMERA
+    To run use the terminal command `sh /mnt/UDISK/root/k2-improvements/gimme-the-jamin.sh` 
 
-* Stream type: **WebRTC (Creality K2 Plus)**
-* Camera Url Stream: **http://<printer_name/ip>:8000**
+    After install you will need to calibrate the carto by following instructions [here](https://github.com/jamincollins/k2-improvements/blob/main/features/cartographer/SETUP.md)**
 
-# Entware
+* Option 2: `no-carto.sh` - Use this if you aren't going to use a carto, or don't have your carto yet.
 
-The addition of Entware opens up a number of possibilites including:
+    To run use the terminal command `sh /mnt/UDISK/root/k2-improvements/no-carto.sh`
 
-* restoration of classic MJPG camera feeds
-* Obico
+They both install the same set of features (those that I use).  The only difference is whether or not the cartographer bits are installed. If you start with no-carto.sh and later get a carto, you can then run the gimme-the-jamin.sh script and it will install all of the necessary carto items appropriately.
 
-# Extras
+You are still welcome to hand pick which features you want to install.
 
-## Bed Leveling
+## Donations
+
+Donations are definitely _not required_, they are appreciated.  If you'd like to donate you can do so [here](https://ko-fi.com/jamincollins).
+
+## Features
+
+* [axis_twist_compensation](./features/axis_twist_compensation/README.md)
+* [better init](./features/better-init/README.md)
+* [better root](./features/better-root/README.md) home directory
+* [Cartographer](./features/cartographer/README.md) support
+* installs [Entware](https://github.com/Entware/Entware)
+* updated [Fluidd](./features/fluidd/README.md)
+* updated [Moonraker](./features/moonraker/README.md)
+* [Obico](./features/obico/README.md) - _WIP_
+* implements [SCREWS_TILT_CALCULATE](https://www.klipper3d.org/Manual_Level.html#adjusting-bed-leveling-screws-using-the-bed-probe)
+
+And a few quality of life improvement macros
+
+* [MESH_IF_NEEDED](./features/macros/bed_mesh/README.md)
+* [START_PRINT](./features/macros/start_print/README.md)
+* [M191](./features/macros/m191/README.md)
+
+### Bed Leveling
 
 Sadly, many of the K2 beds resemble a taco or valley.  In the [bed_leveling](bed_leveling) folder you will find a python based script and short writeup on how to apply aluminium tape to shim the bed.
 
-# Credits
+## Credits
 
 * [@Guilouz](https://github.com/Guilouz) - standing on the shoulders of giants
 * [@stranula](https://github.com/stranula)
 * [@juliosueiras](https://github.com/juliosueiras)
 
-* Moonraker - https://github.com/Arksine/moonraker
-* Klipper - https://github.com/Klipper3d/klipper
-* Fluidd - https://github.com/fluidd-core/fluidd
-* Entware - https://github.com/Entware/Entware
-* Obico - https://www.obico.io/
+* Moonraker - [https://github.com/Arksine/moonraker](https://github.com/Arksine/moonraker)
+* Klipper - [https://github.com/Klipper3d/klipper](https://github.com/Klipper3d/klipper)
+* Fluidd - [https://github.com/fluidd-core/fluidd](https://github.com/fluidd-core/fluidd)
+* Entware - [https://github.com/Entware/Entware](https://github.com/Entware/Entware)
+* Obico - [https://www.obico.io/](https://www.obico.io/)
+* SimplyPrint - [https://simplyprint.io/](https://simplyprint.io/)
 
-## Fluidd / K2 Webcam
+## FAQ
 
-The **WebRTC (Creality K2 Plus)** Stream type implemented by [@juliosueiras](https://github.com/juliosueiras)
-
-# Known Issues
-
-## Obico does not have a camera feed
-
-I am actively working on resolving this.  Obico requires a camera service/binary known as `janus`.  I am not aware of a compatible build of `janus` for the K2's operating system.  So, I'm working on building it.
-
-# FAQ
-
-## I've installed the Camera fixes but I still can't setup the webcam in Fluidd
-
-If you tried to setup the webcam before installing the fixes you've got at least one (or more) broken entries. Because these entries are broken, they can't be removed normally, but we have included a script ease their removal.
-
-```
-./scripts/delete-camera <name>
-```
-
-## What about KAMP/ Adaptive Bed Mesh
-
-There's a gotcha for this.  Since you're only probing the print area, if your bed has say an upward bend of more than a layer or two, moves outside the print area (like say color swaps) may, run into the bed...
-
-So, this is currently on hold until a safe path forward can be determined/found.
+See the [FAQ](./FAQ.md)
