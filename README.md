@@ -64,6 +64,7 @@ Donations are definitely _not required_, they are appreciated.  If you'd like to
 * updated [Fluidd](./features/fluidd/README.md)
 * updated [Moonraker](./features/moonraker/README.md)
 * [Obico](./features/obico/README.md) - _WIP_
+* [OctoEverywhere](./features/octoeverywhere/README.md) - Remote Access, AI Failure Detection, Print Notifications
 * implements [SCREWS_TILT_CALCULATE](https://www.klipper3d.org/Manual_Level.html#adjusting-bed-leveling-screws-using-the-bed-probe)
 
 And a few quality of life improvement macros
@@ -88,6 +89,7 @@ Sadly, many of the K2 beds resemble a taco or valley.  In the [bed_leveling](bed
 * Entware - [https://github.com/Entware/Entware](https://github.com/Entware/Entware)
 * Obico - [https://www.obico.io/](https://www.obico.io/)
 * SimplyPrint - [https://simplyprint.io/](https://simplyprint.io/)
+* OctoEverywhere - [https://octoeverywhere.com/](https://octoeverywhere.com/)
 
 ## FAQ
 
